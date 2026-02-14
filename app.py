@@ -1,4 +1,5 @@
-import os
+import copy
+import json
 from pathlib import Path
 
 import streamlit as st
@@ -16,13 +17,23 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
+def _secrets_to_dict(obj):
+    """Deep-convert st.secrets (immutable) to a plain mutable dict."""
+    if hasattr(obj, "to_dict"):
+        return {k: _secrets_to_dict(v) for k, v in obj.to_dict().items()}
+    if isinstance(obj, dict):
+        return {k: _secrets_to_dict(v) for k, v in obj.items()}
+    return obj
+
+
 # --- Authentication ---
 # Load from auth_config.yaml (local) or st.secrets (Streamlit Cloud)
 if Path("auth_config.yaml").exists():
     with open("auth_config.yaml") as f:
         auth_config = yaml.safe_load(f)
 else:
-    auth_config = dict(st.secrets["auth"])
+    auth_config = _secrets_to_dict(st.secrets["auth"])
 
 authenticator = stauth.Authenticate(
     auth_config["credentials"],

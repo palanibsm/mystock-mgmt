@@ -23,38 +23,34 @@ def render_holdings_table(
 
     rows = []
     for e in enriched:
+        pnl = e.pnl if e.pnl is not None else 0.0
+        pnl_pct = e.pnl_pct if e.pnl_pct is not None else 0.0
         rows.append({
-            "Name": e.holding.name,
-            "Symbol": e.holding.symbol,
-            "Qty": e.holding.quantity,
-            f"Buy Price ({sym})": e.holding.buy_price,
-            f"Current ({sym})": e.current_price,
-            f"P&L ({sym})": e.pnl,
-            "P&L %": e.pnl_pct,
-            "Trend": trend_arrow(e.trend),
-            f"ATH ({sym})": e.all_time_high,
-            f"ATL ({sym})": e.all_time_low,
+            "Name": e.holding.name or "",
+            "Symbol": e.holding.symbol or "",
+            "Qty": e.holding.quantity if e.holding.quantity is not None else 0,
+            "Buy Price": e.holding.buy_price if e.holding.buy_price is not None else 0,
+            "Current": e.current_price if e.current_price is not None else 0,
+            "P&L": pnl,
+            "P&L %": pnl_pct,
+            "Trend": trend_arrow(e.trend) if e.trend else "—",
+            "ATH": e.all_time_high if e.all_time_high else 0,
+            "ATL": e.all_time_low if e.all_time_low else 0,
         })
 
     df = pd.DataFrame(rows)
 
-    # Style P&L columns
-    def color_pnl(val):
-        if isinstance(val, (int, float)):
-            color = "green" if val >= 0 else "red"
-            return f"color: {color}"
-        return ""
+    col_config = {
+        "Name": st.column_config.TextColumn("Name", width="medium"),
+        "Symbol": st.column_config.TextColumn("Symbol", width="small"),
+        "Qty": st.column_config.NumberColumn("Qty", format="%.4g"),
+        "Buy Price": st.column_config.NumberColumn(f"Buy ({sym})", format="%.2f"),
+        "Current": st.column_config.NumberColumn(f"Current ({sym})", format="%.2f"),
+        "P&L": st.column_config.NumberColumn(f"P&L ({sym})", format="%.2f"),
+        "P&L %": st.column_config.NumberColumn("P&L %", format="%.1f%%"),
+        "Trend": st.column_config.TextColumn("Trend", width="small"),
+        "ATH": st.column_config.NumberColumn(f"ATH ({sym})", format="%.2f"),
+        "ATL": st.column_config.NumberColumn(f"ATL ({sym})", format="%.2f"),
+    }
 
-    pnl_col = f"P&L ({sym})"
-    styled = df.style.applymap(color_pnl, subset=[pnl_col, "P&L %"])
-    styled = styled.format({
-        "Qty": "{:.4g}",
-        f"Buy Price ({sym})": "{:,.2f}",
-        f"Current ({sym})": "{:,.2f}",
-        pnl_col: "{:+,.2f}",
-        "P&L %": "{:+.1f}%",
-        f"ATH ({sym})": "{:,.2f}",
-        f"ATL ({sym})": "{:,.2f}",
-    })
-
-    st.dataframe(styled, use_container_width=True, hide_index=True)
+    st.dataframe(df, column_config=col_config, use_container_width=True, hide_index=True)

@@ -9,14 +9,26 @@ from utils.constants import Category, CATEGORY_CURRENCIES, EXCHANGE_SUFFIXES
 
 def _symbol_help(category: str) -> str:
     hints = {
-        Category.INDIAN_STOCK: "Use Yahoo Finance format: RELIANCE.NS (NSE) or RELIANCE.BO (BSE)",
-        Category.SG_STOCK: "Use Yahoo Finance format: D05.SI (DBS), O39.SI (OCBC)",
+        Category.INDIAN_STOCK: "Enter stock name (e.g. RELIANCE, TCS, ITC). '.NS' suffix is added automatically for NSE.",
+        Category.SG_STOCK: "Enter SGX code (e.g. D05, O39, U11). '.SI' suffix is added automatically.",
         Category.US_STOCK: "Use ticker symbol: AAPL, MSFT, GOOGL",
         Category.INDIAN_MF: "Use AMFI scheme code (e.g. 119551). Find at mfapi.in",
         Category.SG_MF: "Enter fund name as identifier",
         Category.PRECIOUS_METAL: "Use GOLD or SILVER",
     }
     return hints.get(category, "")
+
+
+def _normalize_symbol(symbol: str, category: str) -> str:
+    """Auto-append exchange suffix if the user didn't include one."""
+    s = symbol.strip().upper()
+    if category == Category.INDIAN_STOCK:
+        if not s.endswith(".NS") and not s.endswith(".BO"):
+            s += ".NS"  # Default to NSE
+    elif category == Category.SG_STOCK:
+        if not s.endswith(".SI"):
+            s += ".SI"
+    return s
 
 
 def render_add_form(category: str, broker_default: str = "") -> None:
@@ -49,7 +61,7 @@ def render_add_form(category: str, broker_default: str = "") -> None:
             add_holding({
                 "category": category,
                 "name": name.strip(),
-                "symbol": symbol.strip().upper(),
+                "symbol": _normalize_symbol(symbol, category),
                 "quantity": quantity,
                 "buy_price": buy_price,
                 "buy_date": buy_date.isoformat() if buy_date else None,
@@ -92,7 +104,7 @@ def render_holdings_list(category: str) -> None:
                 if st.button("Update", key=f"update_{h['id']}", type="primary", use_container_width=True):
                     update_holding(h["id"], {
                         "name": new_name.strip(),
-                        "symbol": new_symbol.strip().upper(),
+                        "symbol": _normalize_symbol(new_symbol, category),
                         "quantity": new_qty,
                         "buy_price": new_price,
                         "buy_date": new_date.strip() if new_date else None,

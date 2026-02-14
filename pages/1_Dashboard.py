@@ -9,6 +9,7 @@ from services.market_data import get_stock_price
 from services.mf_data import get_mf_price_data
 from services.metals_data import get_metal_price_sgd_per_gram
 from services.forex_data import convert_to_sgd
+from db.database import get_cached_price
 from components.summary_cards import render_summary_cards
 from components.holdings_table import render_holdings_table
 from utils.constants import Category, CATEGORY_CURRENCIES, CATEGORY_LABELS
@@ -39,6 +40,15 @@ def _get_price(holding: dict) -> PriceData | None:
     elif cat == Category.PRECIOUS_METAL:
         return get_metal_price_sgd_per_gram(symbol)
     elif cat == Category.SG_MF:
+        # Manual NAV — read from price_cache (no TTL expiry for manual entries)
+        cached = get_cached_price(symbol, ttl_minutes=999999)
+        if cached and cached.get("current_price"):
+            return PriceData(
+                current_price=cached["current_price"],
+                all_time_high=cached.get("all_time_high") or 0,
+                all_time_low=cached.get("all_time_low") or 0,
+                trend=cached.get("trend") or "SIDEWAYS",
+            )
         return None
     return None
 

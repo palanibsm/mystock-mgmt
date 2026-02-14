@@ -21,21 +21,47 @@ def render_holdings_table(
 
     st.subheader(label)
 
-    rows = []
+    # Group holdings by symbol
+    grouped: dict[str, dict] = {}
     for e in enriched:
-        pnl = e.pnl if e.pnl is not None else 0.0
-        pnl_pct = e.pnl_pct if e.pnl_pct is not None else 0.0
+        sym_key = e.holding.symbol or ""
+        if sym_key not in grouped:
+            grouped[sym_key] = {
+                "name": e.holding.name or "",
+                "symbol": sym_key,
+                "total_qty": 0.0,
+                "total_invested": 0.0,
+                "current_price": e.current_price if e.current_price is not None else 0,
+                "trend": e.trend,
+                "ath": e.all_time_high if e.all_time_high else 0,
+                "atl": e.all_time_low if e.all_time_low else 0,
+            }
+        qty = e.holding.quantity if e.holding.quantity is not None else 0
+        grouped[sym_key]["total_qty"] += qty
+        grouped[sym_key]["total_invested"] += e.total_invested if e.total_invested is not None else 0
+
+    rows = []
+    for g in grouped.values():
+        total_qty = g["total_qty"]
+        total_invested = g["total_invested"]
+        avg_buy_price = (total_invested / total_qty) if total_qty else 0
+        current_value = total_qty * g["current_price"]
+        pnl = current_value - total_invested
+        pnl_pct = (pnl / total_invested * 100) if total_invested else 0
+
         rows.append({
-            "Name": e.holding.name or "",
-            "Symbol": e.holding.symbol or "",
-            "Qty": e.holding.quantity if e.holding.quantity is not None else 0,
-            "Buy Price": e.holding.buy_price if e.holding.buy_price is not None else 0,
-            "Current": e.current_price if e.current_price is not None else 0,
+            "Name": g["name"],
+            "Symbol": g["symbol"],
+            "Qty": total_qty,
+            "Avg Buy": avg_buy_price,
+            "Current": g["current_price"],
+            "Invested": total_invested,
+            "Value": current_value,
             "P&L": pnl,
             "P&L %": pnl_pct,
-            "Trend": trend_arrow(e.trend) if e.trend else "—",
-            "ATH": e.all_time_high if e.all_time_high else 0,
-            "ATL": e.all_time_low if e.all_time_low else 0,
+            "Trend": trend_arrow(g["trend"]) if g["trend"] else "—",
+            "ATH": g["ath"],
+            "ATL": g["atl"],
         })
 
     df = pd.DataFrame(rows)
@@ -43,14 +69,16 @@ def render_holdings_table(
     col_config = {
         "Name": st.column_config.TextColumn("Name", width="medium"),
         "Symbol": st.column_config.TextColumn("Symbol", width="small"),
-        "Qty": st.column_config.NumberColumn("Qty", format="%.4g"),
-        "Buy Price": st.column_config.NumberColumn(f"Buy ({sym})", format="%.2f"),
-        "Current": st.column_config.NumberColumn(f"Current ({sym})", format="%.2f"),
-        "P&L": st.column_config.NumberColumn(f"P&L ({sym})", format="%.2f"),
+        "Qty": st.column_config.NumberColumn("Qty", format="%.3f"),
+        "Avg Buy": st.column_config.NumberColumn(f"Avg Buy ({sym})", format="%.3f"),
+        "Current": st.column_config.NumberColumn(f"Current ({sym})", format="%.3f"),
+        "Invested": st.column_config.NumberColumn(f"Invested ({sym})", format="%.3f"),
+        "Value": st.column_config.NumberColumn(f"Value ({sym})", format="%.3f"),
+        "P&L": st.column_config.NumberColumn(f"P&L ({sym})", format="%.3f"),
         "P&L %": st.column_config.NumberColumn("P&L %", format="%.1f%%"),
         "Trend": st.column_config.TextColumn("Trend", width="small"),
-        "ATH": st.column_config.NumberColumn(f"ATH ({sym})", format="%.2f"),
-        "ATL": st.column_config.NumberColumn(f"ATL ({sym})", format="%.2f"),
+        "ATH": st.column_config.NumberColumn(f"ATH ({sym})", format="%.3f"),
+        "ATL": st.column_config.NumberColumn(f"ATL ({sym})", format="%.3f"),
     }
 
     st.dataframe(df, column_config=col_config, use_container_width=True, hide_index=True)

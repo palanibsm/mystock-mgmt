@@ -1,4 +1,6 @@
 import streamlit as st
+import yaml
+import streamlit_authenticator as stauth
 from db.database import init_db
 from ai.config import AIConfig
 from ai.agents.monitor_agent import MonitorAgent, AlertStore
@@ -11,6 +13,27 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# --- Authentication ---
+with open("auth_config.yaml") as f:
+    auth_config = yaml.safe_load(f)
+
+authenticator = stauth.Authenticate(
+    auth_config["credentials"],
+    auth_config["cookie"]["name"],
+    auth_config["cookie"]["key"],
+    auth_config["cookie"]["expiry_days"],
+)
+
+authenticator.login()
+
+if st.session_state.get("authentication_status") is None:
+    st.info("Please enter your username and password.")
+    st.stop()
+elif st.session_state.get("authentication_status") is False:
+    st.error("Username or password is incorrect.")
+    st.stop()
+
+# --- Authenticated beyond this point ---
 init_db()
 
 # Initialize background monitor (once per app lifecycle)
@@ -43,8 +66,11 @@ nav = st.navigation({
     "AI Assistant": [ai_chat],
 })
 
-# Sidebar: alerts + info
+# Sidebar: user info + logout + alerts
 with st.sidebar:
+    st.write(f"Welcome, **{st.session_state.get('name', '')}**")
+    authenticator.logout("Logout", "sidebar")
+    st.markdown("---")
     render_alert_sidebar(st.session_state.alert_store)
     st.markdown("---")
     st.caption("MyStock Manager v0.1")

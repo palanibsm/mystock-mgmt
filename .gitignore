@@ -1,4 +1,5 @@
 .env
+auth_config.yaml
 db/portfolio.db
 __pycache__/
 *.pyc

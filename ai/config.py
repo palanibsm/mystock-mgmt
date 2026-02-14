@@ -2,10 +2,23 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _get_setting(key: str, default: str = "") -> str:
+    """Read from env vars first, then fall back to st.secrets (Streamlit Cloud)."""
+    val = os.getenv(key)
+    if val:
+        return val
+    try:
+        import streamlit as st
+        return str(st.secrets.get(key, default))
+    except Exception:
+        return default
 
 MODEL_CATALOG = {
     "openai": {
@@ -44,16 +57,16 @@ class AIConfig:
 
     @classmethod
     def from_env(cls) -> AIConfig:
-        provider = os.getenv("AI_PROVIDER", "openai")
+        provider = _get_setting("AI_PROVIDER", "openai")
         return cls(
             provider=provider,
-            tier=os.getenv("AI_TIER", "economy"),
-            api_key=os.getenv("AI_API_KEY", ""),
-            ollama_base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            max_monthly_budget_usd=float(os.getenv("AI_MONTHLY_BUDGET", "5.0")),
-            insights_on_load=os.getenv("AI_INSIGHTS_ON_LOAD", "true").lower() == "true",
-            monitor_interval_seconds=int(os.getenv("AI_MONITOR_INTERVAL", "300")),
-            price_alert_threshold_pct=float(os.getenv("AI_PRICE_ALERT_PCT", "5.0")),
+            tier=_get_setting("AI_TIER", "economy"),
+            api_key=_get_setting("AI_API_KEY", ""),
+            ollama_base_url=_get_setting("OLLAMA_BASE_URL", "http://localhost:11434"),
+            max_monthly_budget_usd=float(_get_setting("AI_MONTHLY_BUDGET", "5.0")),
+            insights_on_load=_get_setting("AI_INSIGHTS_ON_LOAD", "true").lower() == "true",
+            monitor_interval_seconds=int(_get_setting("AI_MONITOR_INTERVAL", "300")),
+            price_alert_threshold_pct=float(_get_setting("AI_PRICE_ALERT_PCT", "5.0")),
         )
 
     @property

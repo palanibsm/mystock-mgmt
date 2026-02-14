@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import streamlit as st
 import yaml
 import streamlit_authenticator as stauth
@@ -14,8 +17,12 @@ st.set_page_config(
 )
 
 # --- Authentication ---
-with open("auth_config.yaml") as f:
-    auth_config = yaml.safe_load(f)
+# Load from auth_config.yaml (local) or st.secrets (Streamlit Cloud)
+if Path("auth_config.yaml").exists():
+    with open("auth_config.yaml") as f:
+        auth_config = yaml.safe_load(f)
+else:
+    auth_config = dict(st.secrets["auth"])
 
 authenticator = stauth.Authenticate(
     auth_config["credentials"],

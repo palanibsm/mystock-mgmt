@@ -190,6 +190,34 @@ def log_ai_usage(provider: str, model: str, input_tokens: int,
     conn.close()
 
 
+def delete_all_holdings() -> int:
+    """Delete all holdings. Returns number of rows deleted."""
+    conn = get_connection()
+    cursor = conn.execute("DELETE FROM holdings")
+    count = cursor.rowcount
+    conn.commit()
+    conn.close()
+    return count
+
+
+def bulk_insert_holdings(rows: list[dict]) -> int:
+    """Insert multiple holdings at once. Returns number inserted."""
+    conn = get_connection()
+    count = 0
+    for row in rows:
+        conn.execute(
+            """INSERT INTO holdings (category, name, symbol, quantity, buy_price,
+               buy_date, currency, broker, notes)
+               VALUES (:category, :name, :symbol, :quantity, :buy_price,
+               :buy_date, :currency, :broker, :notes)""",
+            row,
+        )
+        count += 1
+    conn.commit()
+    conn.close()
+    return count
+
+
 def get_monthly_ai_cost() -> float:
     conn = get_connection()
     now = datetime.utcnow()

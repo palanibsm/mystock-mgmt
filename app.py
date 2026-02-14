@@ -77,11 +77,13 @@ indian_mf = st.Page("pages/5_Indian_Mutual_Funds.py", title="Indian Mutual Funds
 sg_mf = st.Page("pages/6_SG_Mutual_Funds.py", title="SG Mutual Funds", icon="📈")
 precious_metals = st.Page("pages/7_Precious_Metals.py", title="Precious Metals", icon="🥇")
 ai_chat = st.Page("pages/8_AI_Chat.py", title="AI Chat", icon="🤖")
+import_export = st.Page("pages/9_Import_Export.py", title="Import / Export", icon="📥")
 
 nav = st.navigation({
     "Portfolio": [dashboard],
     "Manage Holdings": [indian_stocks, sg_stocks, us_stocks, indian_mf, sg_mf, precious_metals],
     "AI Assistant": [ai_chat],
+    "Data": [import_export],
 })
 
 # Sidebar: user info + logout + alerts

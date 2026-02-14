@@ -1,0 +1,52 @@
+import streamlit as st
+from db.database import init_db
+from ai.config import AIConfig
+from ai.agents.monitor_agent import MonitorAgent, AlertStore
+from components.alert_sidebar import render_alert_sidebar
+
+st.set_page_config(
+    page_title="MyStock Manager",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+init_db()
+
+# Initialize background monitor (once per app lifecycle)
+if "alert_store" not in st.session_state:
+    st.session_state.alert_store = AlertStore()
+
+if "monitor_started" not in st.session_state:
+    config = AIConfig.from_env()
+    monitor = MonitorAgent(
+        alert_store=st.session_state.alert_store,
+        interval_seconds=config.monitor_interval_seconds,
+        threshold_pct=config.price_alert_threshold_pct,
+    )
+    monitor.start()
+    st.session_state.monitor_started = True
+
+# Navigation
+dashboard = st.Page("pages/1_Dashboard.py", title="Dashboard", icon="📊", default=True)
+indian_stocks = st.Page("pages/2_Indian_Stocks.py", title="Indian Stocks", icon="🇮🇳")
+sg_stocks = st.Page("pages/3_Singapore_Stocks.py", title="Singapore Stocks", icon="🇸🇬")
+us_stocks = st.Page("pages/4_US_Stocks.py", title="US Stocks", icon="🇺🇸")
+indian_mf = st.Page("pages/5_Indian_Mutual_Funds.py", title="Indian Mutual Funds", icon="📈")
+sg_mf = st.Page("pages/6_SG_Mutual_Funds.py", title="SG Mutual Funds", icon="📈")
+precious_metals = st.Page("pages/7_Precious_Metals.py", title="Precious Metals", icon="🥇")
+ai_chat = st.Page("pages/8_AI_Chat.py", title="AI Chat", icon="🤖")
+
+nav = st.navigation({
+    "Portfolio": [dashboard],
+    "Manage Holdings": [indian_stocks, sg_stocks, us_stocks, indian_mf, sg_mf, precious_metals],
+    "AI Assistant": [ai_chat],
+})
+
+# Sidebar: alerts + info
+with st.sidebar:
+    render_alert_sidebar(st.session_state.alert_store)
+    st.markdown("---")
+    st.caption("MyStock Manager v0.1")
+
+nav.run()

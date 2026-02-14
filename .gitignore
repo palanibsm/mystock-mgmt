@@ -1,0 +1,8 @@
+.env
+db/portfolio.db
+__pycache__/
+*.pyc
+.streamlit/secrets.toml
+venv/
+.venv/
+.claude/
